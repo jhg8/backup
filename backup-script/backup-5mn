@@ -1,0 +1,29 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+cd $DIR;
+
+BACKUP=../backup-5mn-dir
+TMP=../tmp-5mn
+mkdir -p $BACKUP;
+
+prepare-backup() {
+  rm -rf $TMP && mkdir $TMP;
+}
+do-backup() {
+  rdiff-backup $TMP $BACKUP/$1;
+
+  rm -rf $TMP;
+  # Delete old entries
+  rdiff-backup --force --remove-older-than 1h $BACKUP/$1;
+}
+
+backup-example() {
+  prepare-backup;
+
+  # setup TMP with backup here
+
+  do-backup "backup-name";
+}
+
+backup-example;

@@ -1,0 +1,52 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SYSTEMDIR="/etc/systemd/system"
+SCRIPTDIR="$DIR/backup-script"
+
+mkdir -p $SYSTEMDIR;
+
+create-service() {
+  cat << EOF > $SYSTEMDIR/$1.service
+[Unit]
+Description=$2
+Wants=$1.timer
+
+[Service]
+Type=oneshot
+ExecStart=$SCRIPTDIR/$1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  cat << EOF > $SYSTEMDIR/$1.timer
+[Unit]
+Description=$2
+Requires=$1.service
+
+[Timer]
+Unit=$1.service
+OnBootSec=5min
+OnUnitActiveSec=$3
+
+[Install]
+WantedBy=timers.target
+EOF
+
+  chmod 644 $SYSTEMDIR/$1.service;
+  chmod 644 $SYSTEMDIR/$1.timer;
+}
+
+activate-service() {
+	systemctl enable $1.service;
+	systemctl enable $1.timer;
+	systemctl start $1.service;
+}
+
+create-service "backup-daily" "Backup daily" "1d";
+create-service "backup-5mn" "Backup every 5mn" "5min";
+
+systemctl daemon-reload
+
+activate-service "backup-daily";
+activate-service "backup-5mn";
